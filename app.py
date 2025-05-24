@@ -291,13 +291,6 @@ if st.session_state.history:  # Only show chat container if there are messages
             """, 
             unsafe_allow_html=True
         )
-        
-        # Add copy button using Streamlit's native components
-        col1, col2 = st.columns([6, 1])
-        with col2:
-            if st.button("📋 Copy", key=f"copy_{i}", help="Copy answer to clipboard"):
-                st.toast("Copied to clipboard! ✨", icon="✨")
-                st.write(f'<script>navigator.clipboard.writeText(`{a}`)</script>', unsafe_allow_html=True)
 
 # Input area at bottom
 col1, col2 = st.columns([8, 1])
@@ -306,7 +299,7 @@ with col1:
     question = st.text_input(
         "Your question:",
         placeholder="Type here and press Enter…",
-        key=current_input_key,  # Dynamic key based on counter
+        key=current_input_key,
         label_visibility="collapsed",
         on_change=lambda: process_query(st.session_state[current_input_key]) if st.session_state[current_input_key] else None
     )
