@@ -1,0 +1,18 @@
+# Base requirements
+-r requirements.txt
+
+# Development tools
+black==24.2.0  # Code formatting
+jupyter==1.0.0  # For testing and experimenting with embeddings
+
+# PDF processing alternatives for testing
+PyMuPDF==1.23.8  # Alternative PDF extractor
+pdfplumber==0.10.3  # Another PDF extractor for comparison
+
+# Testing and debugging
+pytest==8.0.0
+python-dotenv==1.0.1  # For local environment variables
+
+# Visualization for testing embeddings
+matplotlib==3.8.2  # For visualizing vector embeddings
+scikit-learn==1.4.0  # For dimensionality reduction of embeddings 

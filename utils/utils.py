@@ -1,8 +1,8 @@
 # Step 1: Extract Text from PDF
 
-import fitz  # PyMuPDF
+# import fitz  # PyMuPDF
 import re
-import pdfplumber
+# import pdfplumber
 import os
 import openai
 from pdfminer.high_level import extract_text_to_fp
