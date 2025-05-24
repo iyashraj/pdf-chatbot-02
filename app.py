@@ -79,109 +79,166 @@ if not index or not chunks:
 if "history" not in st.session_state:
     st.session_state.history = []  # list of (q, a)
 
+if "input_key" not in st.session_state:
+    st.session_state.input_key = 0  # Counter to force input field reset
+
 # ─── SIDEBAR ───────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.title("📖 PDF Chatbot")
-    st.write("Ask questions about the PDF and get Markdown-formatted answers.")
-    st.write(f"**Document:** {os.path.basename(BOOK_PATH)}")
-    st.markdown("---")
-    if st.button("🗑️ Clear History"):
-        st.session_state.history = []
-        st.success("History cleared")
+    st.markdown("""
+        <style>
+        [data-testid="stSidebar"] {
+            background-color: #1E1E1E;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 2rem 1rem;
+        }
+        
+        [data-testid="stSidebar"] > div:first-child {
+            padding: 0 1rem;
+        }
+        
+        [data-testid="stSidebarNav"] {
+            padding-top: 1rem;
+        }
+        
+        .sidebar-content {
+            background-color: #2D2D2D;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .sidebar-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #E0E0E0;
+        }
+        
+        .sidebar-info {
+            color: #B0B0B0;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin: 0.5rem 0;
+        }
+        
+        .clear-button {
+            margin-top: 1rem;
+        }
+        
+        .clear-button .stButton > button {
+            background-color: #383838 !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            transition: all 0.3s ease;
+        }
+        
+        .clear-button .stButton > button:hover {
+            background-color: #454545 !important;
+            border-color: rgba(255, 255, 255, 0.2) !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+        <div class="sidebar-content">
+            <p class="sidebar-title">📖 PDF Chatbot</p>
+            <p class="sidebar-info">Ask questions about the PDF and get Markdown-formatted answers.</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    with st.container():
+        st.markdown('<div class="clear-button">', unsafe_allow_html=True)
+        if st.button("🗑️ Clear History", type="secondary", use_container_width=True):
+            st.session_state.history = []
+            st.success("History cleared")
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # ─── MAIN UI ───────────────────────────────────────────────────────────────────
 st.markdown("<h1 style='text-align:center;'>🤖 PDF Q&A</h1>", unsafe_allow_html=True)
 st.markdown(
     """
     <style>
-    /* Main container styles */
-    .main {
-        display: flex;
-        flex-direction: column;
-        height: 100vh;
-        padding: 1rem;
-    }
-    
     /* Chat container styles */
     .chat-container {
         background-color: #1E1E1E;
         padding: 1.5rem;
-        border-radius: 8px;
+        border-radius: 12px;
         margin-bottom: 1rem;
-        flex-grow: 1;
+        max-height: calc(100vh - 200px);
         overflow-y: auto;
-        max-height: calc(100vh - 180px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
     }
     
     /* Message styles */
-    .user-msg { 
-        color: #2B88D9; 
-        font-weight: bold;
-        margin-bottom: 0.5rem;
-    }
-    .bot-msg { 
-        color: #E0E0E0;
-        background: #2D2D2D;
-        padding: 1rem;
-        border-radius: 6px;
-        margin-bottom: 1.5rem;
+    .user-msg {
+        background-color: #2B88D9;
+        color: white;
+        padding: 1rem 1.2rem;
+        border-radius: 15px 15px 15px 0;
+        margin: 1rem 0;
+        font-weight: 500;
+        box-shadow: 0 2px 8px rgba(43, 136, 217, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        position: relative;
     }
     
-    /* Button styles */
-    .copy-btn {
-        background-color: #4CAF50;
-        color: white;
-        border: none;
-        padding: 0.25rem 0.5rem;
-        border-radius: 4px;
-        cursor: pointer;
-        margin-top: 0.5rem;
+    .bot-msg {
+        background-color: #2D2D2D;
+        color: #E0E0E0;
+        padding: 1.2rem;
+        border-radius: 15px 15px 0 15px;
+        margin: 1rem 0 1.5rem 0;
+        line-height: 1.5;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        position: relative;
     }
-    .stButton > button {
-        height: 40px;
-        width: 100%;
-        padding: 0 1rem;
-        background-color: #2B88D9;
+    
+    /* Message labels */
+    .msg-label {
+        position: absolute;
+        top: -10px;
+        left: 15px;
+        background-color: inherit;
+        padding: 0 8px;
+        font-size: 0.85em;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
     }
     
     /* Input container styles */
     .input-container {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        padding: 1rem;
-        background: #0E1117;
-        border-top: 1px solid #2D2D2D;
+        background-color: #1E1E1E;
+        padding: 1.2rem;
+        border-radius: 12px;
+        margin-top: 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
     
-    /* Hide default Streamlit elements */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    
-    /* Adjust horizontal block spacing */
-    div[data-testid="stHorizontalBlock"] {
-        align-items: center;
-        gap: 1rem;
+    /* Button styles */
+    .stButton > button {
+        background-color: #2B88D9 !important;
+        color: rgba(255, 255, 255, 1) !important;
+        border: none !important;
+        border-radius: 8px !important;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
     }
     
-    /* Loading spinner styles */
-    .stSpinner > div {
-        border-color: #2B88D9 !important;
+    /* Sidebar styles */
+    [data-testid="stSidebar"] {
+        background-color: #1E1E1E;
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
     }
     
-    /* JavaScript for Enter key handling */
-    <script>
-    document.addEventListener('keypress', function(event) {
-        if (event.key === 'Enter' && !event.shiftKey) {
-            const askButton = document.querySelector('button[kind="primary"]');
-            if (askButton) {
-                askButton.click();
-            }
-        }
-    });
-    </script>
+    /* Keep existing button text color fixes */
+    button[kind="secondary"] p {
+        color: white !important;
+    }
+    
+    .stButton > button p {
+        color: white !important;
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -207,38 +264,54 @@ def process_query(question):
         else:
             st.session_state.history.append((question, answer))
     
-    # Clear input after processing
-    st.session_state.input = ""
+    # Increment the input key to force a reset
+    st.session_state.input_key += 1
 
 # Main chat area
-st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
-for q, a in st.session_state.history:
-    st.markdown(f"<div class='user-msg'>Q: {q}</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='bot-msg'>{a}</div>", unsafe_allow_html=True)
-    js = f"navigator.clipboard.writeText(`{a}`)"
-    st.markdown(
-        f"""<button class="copy-btn" onclick="{js}">Copy Answer</button>""",
-        unsafe_allow_html=True
-    )
-st.markdown("</div>", unsafe_allow_html=True)
+if st.session_state.history:  # Only show chat container if there are messages
+    for i, (q, a) in enumerate(st.session_state.history):
+        # Question container
+        st.markdown(
+            f"""
+            <div class='user-msg'>
+                <div class='msg-label'>Question</div>
+                {q}
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
+        
+        # Answer container
+        st.markdown(
+            f"""
+            <div class='bot-msg'>
+                <div class='msg-label'>Answer</div>
+                {a}
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
+        
+        # Add copy button using Streamlit's native components
+        col1, col2 = st.columns([6, 1])
+        with col2:
+            if st.button("📋 Copy", key=f"copy_{i}", help="Copy answer to clipboard"):
+                st.toast("Copied to clipboard! ✨", icon="✨")
+                st.write(f'<script>navigator.clipboard.writeText(`{a}`)</script>', unsafe_allow_html=True)
 
 # Input area at bottom
-st.markdown("<div class='input-container'>", unsafe_allow_html=True)
 col1, col2 = st.columns([8, 1])
 with col1:
+    current_input_key = f"input_{st.session_state.input_key}"
     question = st.text_input(
         "Your question:",
         placeholder="Type here and press Enter…",
-        key="input",
+        key=current_input_key,  # Dynamic key based on counter
         label_visibility="collapsed",
-        on_change=lambda: process_query(st.session_state.input) if st.session_state.input else None
+        on_change=lambda: process_query(st.session_state[current_input_key]) if st.session_state[current_input_key] else None
     )
 
 with col2:
-    if st.button("Ask", use_container_width=True):
+    if st.button("Ask", type="primary", use_container_width=True):
         process_query(question)
-st.markdown("</div>", unsafe_allow_html=True)
 
-# Remove the old question processing code
-if question:
-    process_query(question)

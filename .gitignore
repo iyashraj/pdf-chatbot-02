@@ -168,3 +168,44 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Virtual environment
+venv/
+env/
+.env
+
+# IDE settings
+.vscode/
+.idea/
+
+# Generated files
+*.pkl
+*.index
+chat_history.json
+
+# Temporary files
+*.md
+!README.md
+*.tmp
+*.log
+
+# Large binary files
+*.pdf
+
+# Local Streamlit
+.streamlit/secrets.toml
+
+# Keep
+!requirements*.txt
+!packages.txt
+!.streamlit/config.toml
