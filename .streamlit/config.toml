@@ -1,0 +1,18 @@
+[server]
+enableCORS = false
+enableXsrfProtection = false
+
+[browser]
+serverAddress = "0.0.0.0"
+serverPort = 8501
+
+[runner]
+magicEnabled = true
+installTracer = true
+
+[theme]
+primaryColor = "#2B88D9"
+backgroundColor = "#0E1117"
+secondaryBackgroundColor = "#1E1E1E"
+textColor = "#E0E0E0"
+font = "sans serif" 

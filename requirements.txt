@@ -4,9 +4,8 @@ faiss-cpu==1.7.4
 pdfminer.six==20221105
 python-dotenv==1.0.1
 sentence-transformers==2.5.1
-torch==2.1.0+cpu
+torch>=2.0.0
 transformers==4.37.2
---extra-index-url https://download.pytorch.org/whl/cpu
 numpy==1.26.4
 nltk==3.8.1
 httpx==0.26.0
