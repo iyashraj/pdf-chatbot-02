@@ -23,37 +23,6 @@ if 'https_proxy' in os.environ: del os.environ['https_proxy']
 if 'HTTP_PROXY' in os.environ: del os.environ['HTTP_PROXY']
 if 'HTTPS_PROXY' in os.environ: del os.environ['HTTPS_PROXY']
 
-# 1. using pdfplumber
-def extract_text_pdfplumber(pdf_path):
-    """
-    Extract text from a PDF file using pdfplumber.
-    
-    Args:
-        pdf_path (str): Path to the PDF file
-        
-    Returns:
-        str: Extracted text from the PDF
-    """
-    try:
-        with pdfplumber.open(pdf_path) as pdf:
-            # Extract text from all pages
-            text = []
-            for page in pdf.pages:
-                # Extract text while preserving some formatting
-                text.append(page.extract_text(x_tolerance=2))  # x_tolerance helps with handling columns
-            
-            # Join all pages with double newlines to separate pages
-            full_text = "\n\n".join(text)
-            
-            # Clean up excessive whitespace while preserving paragraph breaks
-            full_text = "\n".join(line.strip() for line in full_text.splitlines() if line.strip())
-            
-            return full_text
-            
-    except Exception as e:
-        print(f"Error extracting text from PDF: {str(e)}")
-        return ""
-    
 # 2. using pdfminer.six
 
 def extract_text_pdfminer(pdf_path, encoding='utf-8'):
@@ -239,13 +208,36 @@ def build_and_save_faiss(embeddings: list[list[float]],
                          chunks: list[str],
                          index_path="faiss.index",
                          meta_path="chunks.pkl"):
+    """Build and save a FAISS index from embeddings.
+    
+    Args:
+        embeddings: List of embedding vectors
+        chunks: List of text chunks
+        index_path: Path to save FAISS index
+        meta_path: Path to save chunk metadata
+        
+    Returns:
+        FAISS index object
+    
+    Raises:
+        ValueError: If embeddings is None or empty
+    """
+    if not embeddings:
+        raise ValueError("No embeddings provided - embedding generation likely failed")
+        
     arr = np.array(embeddings, dtype="float32")
-    dim = arr.shape[1]
+    if arr.size == 0:
+        raise ValueError("Empty embeddings array")
+        
+    dim = arr.shape[1]  # Get embedding dimension
     index = faiss.IndexFlatL2(dim)
     index.add(arr)
+    
+    # Save index and metadata
     faiss.write_index(index, index_path)
     with open(meta_path, "wb") as f:
         pickle.dump(chunks, f)
+        
     return index
 
 

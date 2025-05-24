@@ -37,14 +37,43 @@ st.set_page_config(
 # ─── INDEX INITIALIZATION ─────────────────────────────────────────────────────
 @st.cache_resource
 def init_faiss():
-    if not (os.path.exists(INDEX_PATH) and os.path.exists(META_PATH)):
-        text   = extract_text_pdfminer(BOOK_PATH)
-        chunks = chunk_text(text)
-        embs   = embed_chunks(chunks)
-        build_and_save_faiss(embs, chunks)
-    return load_faiss(INDEX_PATH, META_PATH)
+    try:
+        if not (os.path.exists(INDEX_PATH) and os.path.exists(META_PATH)):
+            # Extract and process text
+            text = extract_text_pdfminer(BOOK_PATH)
+            if not text:
+                st.error("Failed to extract text from PDF. Please check if the file is valid.")
+                return None, None
+                
+            # Create chunks
+            chunks = chunk_text(text)
+            if not chunks:
+                st.error("Failed to create text chunks. The PDF may be empty or invalid.")
+                return None, None
+                
+            # Create embeddings
+            embs = embed_chunks(chunks)
+            if not embs:
+                st.error("Failed to create embeddings. Please check your OpenAI API key and connection.")
+                return None, None
+                
+            # Build FAISS index
+            try:
+                build_and_save_faiss(embs, chunks)
+            except ValueError as e:
+                st.error(f"Failed to build FAISS index: {str(e)}")
+                return None, None
+                
+        # Load existing index
+        return load_faiss(INDEX_PATH, META_PATH)
+    except Exception as e:
+        st.error(f"An error occurred during initialization: {str(e)}")
+        return None, None
 
+# Initialize FAISS index
 index, chunks = init_faiss()
+if not index or not chunks:
+    st.stop()  # Stop execution if initialization failed
 
 # ─── SESSION STATE ─────────────────────────────────────────────────────────────
 if "history" not in st.session_state:
