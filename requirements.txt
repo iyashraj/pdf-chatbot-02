@@ -1,5 +1,7 @@
 PyMuPDF==1.23.8
 langchain==0.1.9
+langchain-core==0.1.27
+langchain-community==0.0.24
 sentence-transformers==2.5.1
 chromadb==0.4.22
 openai==0.28.0
@@ -11,3 +13,6 @@ nltk==3.8.1
 python-dotenv==1.0.1
 faiss-cpu>=1.7.4
 httpx>=0.26.0
+transformers
+torch
+scikit-learn
