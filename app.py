@@ -25,7 +25,8 @@ if not os.getenv("OPENAI_API_KEY"):
 
 # ─── CONFIG ────────────────────────────────────────────────────────────────────
 # BOOK_PATH   = "NBC 2016-VOL.1.pdf-200-225.pdf"
-BOOK_PATH   = "NBC 2016-VOL.1.pdf.pdf"
+BOOK_PATH1  = "NBC 2016-VOL.1.pdf.pdf"
+BOOK_PATH2  = "NBC 2016-VOL.2.pdf.pdf"
 INDEX_PATH  = "faiss.index"
 META_PATH   = "chunks.pkl"
 
@@ -42,7 +43,7 @@ def init_faiss():
     try:
         if not (os.path.exists(INDEX_PATH) and os.path.exists(META_PATH)):
             # Extract and process text
-            text = extract_text_pdfminer(BOOK_PATH)
+            text = extract_text_pdfminer([BOOK_PATH1, BOOK_PATH2])
             if not text:
                 st.error("Failed to extract text from PDF. Please check if the file is valid.")
                 return None, None

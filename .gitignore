@@ -200,7 +200,7 @@ chat_history.json
 *.log
 
 # Large binary files
-*.pdf
+# *.pdf
 
 # Local Streamlit
 .streamlit/secrets.toml

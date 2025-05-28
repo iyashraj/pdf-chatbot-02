@@ -25,61 +25,108 @@ if 'HTTPS_PROXY' in os.environ: del os.environ['HTTPS_PROXY']
 
 # 2. using pdfminer.six
 
-def extract_text_pdfminer(pdf_path, encoding='utf-8'):
-    """
-    Extract text from a PDF file using pdfminer.six
+# def extract_text_pdfminer(pdf_path, encoding='utf-8'):
+#     """
+#     Extract text from a PDF file using pdfminer.six
     
-    Args:
-        pdf_path (str): Path to the PDF file
-        encoding (str): Text encoding to use (default: utf-8)
+#     Args:
+#         pdf_path (str): Path to the PDF file
+#         encoding (str): Text encoding to use (default: utf-8)
         
+#     Returns:
+#         str: Extracted text from the PDF
+#     """
+#     try:
+#         # Create a string buffer to receive the extracted text
+#         output = StringIO()
+        
+#         # Configure layout analysis parameters
+#         laparams = LAParams(
+#             line_margin=0.5,  # Margin between lines
+#             word_margin=0.1,  # Margin between words
+#             char_margin=2.0,  # Margin between characters
+#             boxes_flow=0.5,   # Text flow direction (0.5 is default)
+#             detect_vertical=True,  # Detect vertical text
+#             all_texts=True    # Extract all texts, including text in figures
+#         )
+        
+#         # Extract text with layout analysis
+#         with open(pdf_path, 'rb') as pdf_file:
+#             extract_text_to_fp(
+#                 pdf_file, 
+#                 output,
+#                 laparams=laparams,
+#                 output_type='text',
+#                 codec=encoding
+#             )
+            
+#         # Get the text from the string buffer
+#         text = output.getvalue()
+        
+#         # Clean up the text
+#         # Remove excessive whitespace while preserving paragraph breaks
+#         cleaned_text = "\n".join(
+#             line.strip() for line in text.splitlines() 
+#             if line.strip()
+#         )
+        
+#         return cleaned_text
+        
+#     except Exception as e:
+#         print(f"Error extracting text from PDF: {str(e)}")
+#         return ""
+#     finally:
+#         output.close()
+
+
+def extract_text_pdfminer(pdf_paths, encoding='utf-8'):
+    """
+    Extract and combine text from multiple PDF files using pdfminer.six.
+
+    Args:
+        pdf_paths (list[str]): List of PDF file paths.
+        encoding (str): Text encoding to use (default: utf-8)
+
     Returns:
-        str: Extracted text from the PDF
+        str: Combined cleaned text from all PDFs
     """
     try:
-        # Create a string buffer to receive the extracted text
-        output = StringIO()
-        
-        # Configure layout analysis parameters
+        full_text = ""
+
         laparams = LAParams(
-            line_margin=0.5,  # Margin between lines
-            word_margin=0.1,  # Margin between words
-            char_margin=2.0,  # Margin between characters
-            boxes_flow=0.5,   # Text flow direction (0.5 is default)
-            detect_vertical=True,  # Detect vertical text
-            all_texts=True    # Extract all texts, including text in figures
+            line_margin=0.5,
+            word_margin=0.1,
+            char_margin=2.0,
+            boxes_flow=0.5,
+            detect_vertical=True,
+            all_texts=True
         )
-        
-        # Extract text with layout analysis
-        with open(pdf_path, 'rb') as pdf_file:
-            extract_text_to_fp(
-                pdf_file, 
-                output,
-                laparams=laparams,
-                output_type='text',
-                codec=encoding
+
+        for pdf_path in pdf_paths:
+            output = StringIO()
+            with open(pdf_path, 'rb') as pdf_file:
+                extract_text_to_fp(
+                    pdf_file,
+                    output,
+                    laparams=laparams,
+                    output_type='text',
+                    codec=encoding
+                )
+            text = output.getvalue()
+            output.close()
+
+            cleaned_text = "\n".join(
+                line.strip() for line in text.splitlines()
+                if line.strip()
             )
-            
-        # Get the text from the string buffer
-        text = output.getvalue()
-        
-        # Clean up the text
-        # Remove excessive whitespace while preserving paragraph breaks
-        cleaned_text = "\n".join(
-            line.strip() for line in text.splitlines() 
-            if line.strip()
-        )
-        
-        return cleaned_text
-        
+
+            full_text += cleaned_text + "\n"
+
+        return full_text
+
     except Exception as e:
-        print(f"Error extracting text from PDF: {str(e)}")
+        print(f"Error extracting text from PDFs: {str(e)}")
         return ""
-    finally:
-        output.close()
-
-
-
 
 # Step 2: Chunk into Overlapping Windows
 
