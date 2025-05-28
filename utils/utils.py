@@ -173,30 +173,76 @@ EMBED_MODEL = "text-embedding-3-small"  # Use direct value instead of env var
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 EMBED_MODEL = "text-embedding-3-small"
+MAX_TOKENS = 300000
+
+# def embed_chunks(chunks: list[dict]) -> list[list[float]]:
+#     """
+#     Input:
+#       chunks: List of dicts, each with at least a 'content' key containing text.
+#     Output:
+#       List of embeddings (each a list of floats), or None on error.
+#     """
+#     try:
+#         # Extract the text strings
+#         texts = [chunk['content'] for chunk in chunks]
+
+#         # Old v0.28.0 embedding call
+#         response = openai.Embedding.create(
+#             model=EMBED_MODEL,
+#             input=texts
+#         )
+
+#         # response.data is a list of dicts: {'index': ..., 'embedding': [...]}
+#         return [item["embedding"] for item in response.data]
+
+#     except Exception as e:
+#         print(f"Error creating embeddings: {e}")
+#         return None
+
+import tiktoken
+def count_tokens(text: str, model: str = EMBED_MODEL) -> int:
+    encoding = tiktoken.encoding_for_model(model)
+    return len(encoding.encode(text))
 
 def embed_chunks(chunks: list[dict]) -> list[list[float]]:
-    """
-    Input:
-      chunks: List of dicts, each with at least a 'content' key containing text.
-    Output:
-      List of embeddings (each a list of floats), or None on error.
-    """
     try:
-        # Extract the text strings
-        texts = [chunk['content'] for chunk in chunks]
+        all_embeddings = []
+        batch = []
+        token_count = 0
 
-        # Old v0.28.0 embedding call
-        response = openai.Embedding.create(
-            model=EMBED_MODEL,
-            input=texts
-        )
+        for chunk in chunks:
+            text = chunk["content"]
+            tokens = count_tokens(text)
 
-        # response.data is a list of dicts: {'index': ..., 'embedding': [...]}
-        return [item["embedding"] for item in response.data]
+            if token_count + tokens > MAX_TOKENS:
+                # Send current batch
+                response = openai.Embedding.create(
+                    model=EMBED_MODEL,
+                    input=[c["content"] for c in batch]
+                )
+                all_embeddings.extend([item["embedding"] for item in response["data"]])
+                # Reset batch
+                batch = [chunk]
+                token_count = tokens
+            else:
+                batch.append(chunk)
+                token_count += tokens
+
+        # Process final batch
+        if batch:
+            response = openai.Embedding.create(
+                model=EMBED_MODEL,
+                input=[c["content"] for c in batch]
+            )
+            all_embeddings.extend([item["embedding"] for item in response["data"]])
+
+        return all_embeddings
 
     except Exception as e:
         print(f"Error creating embeddings: {e}")
         return None
+
+
 
 
 
@@ -282,6 +328,15 @@ def ask_llm(context_chunks: list[str], question: str) -> str:
 # 8. Cache Q&A History
 import json
 
+# def cache_history(question: str, answer: str, path="chat_history.json"):
+#     try:
+#         hist = json.load(open(path))
+#     except FileNotFoundError:
+#         hist = []
+#     hist.append({"question": question, "answer": answer})
+#     json.dump(hist, open(path, "w"), indent=2)
+
+
 def cache_history(question: str, answer: str, path="chat_history.json"):
     try:
         hist = json.load(open(path))
@@ -289,3 +344,9 @@ def cache_history(question: str, answer: str, path="chat_history.json"):
         hist = []
     hist.append({"question": question, "answer": answer})
     json.dump(hist, open(path, "w"), indent=2)
+
+def load_cached_history(path="chat_history.json"):
+    if os.path.exists(path):
+        with open(path, "r") as f:
+            return json.load(f)
+    return []

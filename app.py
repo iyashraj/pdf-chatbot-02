@@ -11,7 +11,8 @@ from utils.utils import (
     load_faiss,
     retrieve,
     ask_llm,
-    cache_history
+    cache_history,
+    load_cached_history
 )
 
 # Load environment variables
@@ -23,7 +24,8 @@ if not os.getenv("OPENAI_API_KEY"):
     st.stop()
 
 # ─── CONFIG ────────────────────────────────────────────────────────────────────
-BOOK_PATH   = "NBC 2016-VOL.1.pdf-200-225.pdf"
+# BOOK_PATH   = "NBC 2016-VOL.1.pdf-200-225.pdf"
+BOOK_PATH   = "NBC 2016-VOL.1.pdf.pdf"
 INDEX_PATH  = "faiss.index"
 META_PATH   = "chunks.pkl"
 
@@ -76,8 +78,12 @@ if not index or not chunks:
     st.stop()  # Stop execution if initialization failed
 
 # ─── SESSION STATE ─────────────────────────────────────────────────────────────
+# if "history" not in st.session_state:
+#     st.session_state.history = []  # list of (q, a)
+
 if "history" not in st.session_state:
-    st.session_state.history = []  # list of (q, a)
+    cached = load_cached_history()
+    st.session_state.history = [(item["question"], item["answer"]) for item in cached]
 
 if "input_key" not in st.session_state:
     st.session_state.input_key = 0  # Counter to force input field reset
@@ -150,7 +156,11 @@ with st.sidebar:
         st.markdown('<div class="clear-button">', unsafe_allow_html=True)
         if st.button("🗑️ Clear History", type="secondary", use_container_width=True):
             st.session_state.history = []
-            st.success("History cleared")
+            # st.success("History cleared")
+            try:
+                open("chat_history.json", "w").write("[]")  # Overwrite with empty list
+            except Exception as e:
+                st.error(f"Error clearing history: {e}")           
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ─── MAIN UI ───────────────────────────────────────────────────────────────────
@@ -292,19 +302,25 @@ if st.session_state.history:  # Only show chat container if there are messages
             unsafe_allow_html=True
         )
 
-# Input area at bottom
-col1, col2 = st.columns([8, 1])
-with col1:
-    current_input_key = f"input_{st.session_state.input_key}"
-    question = st.text_input(
-        "Your question:",
-        placeholder="Type here and press Enter…",
-        key=current_input_key,
-        label_visibility="collapsed",
-        on_change=lambda: process_query(st.session_state[current_input_key]) if st.session_state[current_input_key] else None
-    )
+# # Input area at bottom
+# col1, col2 = st.columns([8, 1])
+# with col1:
+#     current_input_key = f"input_{st.session_state.input_key}"
+#     question = st.text_input(
+#         "Your question:",
+#         placeholder="Type here and press Enter…",
+#         key=current_input_key,
+#         label_visibility="collapsed",
+#         on_change=lambda: process_query(st.session_state[current_input_key]) if st.session_state[current_input_key] else None
+#     )
 
-with col2:
-    if st.button("Ask", type="primary", use_container_width=True):
-        process_query(question)
+# with col2:
+#     if st.button("Ask", type="primary", use_container_width=True):
+#         process_query(question)
 
+current_input_key = f"input_{st.session_state.input_key}"
+question = st.chat_input("Type your message", key=f"input_{st.session_state.input_key}", on_submit=lambda: process_query(st.session_state[current_input_key]) if st.session_state[current_input_key] else None)
+
+if question:
+    st.session_state[current_input_key] = question
+    process_query(question)
